@@ -21,6 +21,37 @@ const ProjectList = ({ tasks, currentUser }) => {
     const [projects, setProjects] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
+    const [showEditModal, setShowEditModal] = useState(false);
+    const [selectedProject, setSelectedProject] = useState(null);
+
+    const handleEditOpen = (project) => {
+        setSelectedProject(project);
+        setForm({
+            name: project.name,
+            deskripsi: project.deskripsi,
+            priority: project.priority,
+            start_date: project.start_date?.split("T")[0],
+            due_date: project.due_date?.split("T")[0],
+            status: project.status,
+            ganchart_type: project.ganchart_type,
+            curva_s: project.curva_s,
+        });
+        setShowEditModal(true);
+    };
+
+    const handleUpdate = async (e) => {
+        e.preventDefault();
+
+        try {
+            await api.put(`/projects/${selectedProject.id}`, form); // ✅ UPDATE API
+            setShowEditModal(false);
+            setSelectedProject(null);
+            fetchProjects(); // refresh data
+        } catch (err) {
+            console.error("❌ Gagal update project:", err);
+        }
+    };
+
 
     const [form, setForm] = useState({
         name: "",
@@ -107,10 +138,8 @@ const ProjectList = ({ tasks, currentUser }) => {
     };
 
     if (loading) return <div>Loading projects...</div>;
-    const userProjects =
-        currentUser?.role === "super_admin"
-            ? projects
-            : projects.filter((p) => p.users?.includes(currentUser?.id));
+    const userProjects = projects;
+
 
     return (
         <div className="space-y-6">
@@ -118,15 +147,15 @@ const ProjectList = ({ tasks, currentUser }) => {
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-bold text-gray-800">Projects</h1>
 
-                {currentUser.role === "super_admin" && (
-                    <button
-                        onClick={() => setShowModal(true)}
-                        className="bg-blue-600 text-white px-4 py-2 rounded-lg"
-                    >
-                        + New Project
-                    </button>
+                {/* {currentUser.role === "super_admin" && ( */}
+                <button
+                    onClick={() => setShowModal(true)}
+                    className="bg-blue-600 text-white px-4 py-2 rounded-lg"
+                >
+                    + New Project
+                </button>
 
-                )}
+                {/* )} */}
             </div>
 
             {/* LIST PROJECT */}
@@ -142,19 +171,23 @@ const ProjectList = ({ tasks, currentUser }) => {
                                     {project.name}
                                 </h3>
 
-                                {currentUser.role === "super_admin" && (
-                                    <div className="flex gap-2">
-                                        <button className="text-gray-600 hover:text-blue-600">
-                                            <Edit2 size={16} />
-                                        </button>
-                                        <button
-                                            onClick={() => handleDelete(project.id)}
-                                            className="text-gray-600 hover:text-red-600"
-                                        >
-                                            <Trash2 size={16} />
-                                        </button>
-                                    </div>
-                                )}
+                                {/* {currentUser.role === "super_admin" && ( */}
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={() => handleEditOpen(project)}
+                                        className="text-gray-600 hover:text-blue-600"
+                                    >
+                                        <Edit2 size={16} />
+                                    </button>
+
+                                    <button
+                                        onClick={() => handleDelete(project.id)}
+                                        className="text-gray-600 hover:text-red-600"
+                                    >
+                                        <Trash2 size={16} />
+                                    </button>
+                                </div>
+                                {/* )} */}
                             </div>
 
                             <p className="text-sm text-gray-600 mb-4">
@@ -224,10 +257,11 @@ const ProjectList = ({ tasks, currentUser }) => {
 
             {/* ✅ MODAL CREATE */}
             {showModal && (
-                <div className="fixed inset-0 bg-black/40 flex justify-center items-center z-50">
+                <div className="fixed inset-0 bg-black/40 flex justify-center items-start sm:items-center z-50 px-4 py-6">
+
                     <form
                         onSubmit={handleSubmit}
-                        className="bg-white w-full max-w-lg rounded-lg shadow-lg p-6 space-y-4"
+                        className="bg-white w-full sm:max-w-md md:max-w-lg max-h-[90vh] overflow-y-auto rounded-xl shadow-lg p-4 sm:p-6 space-y-4"
                     >
                         <h2 className="text-xl font-bold">Create Project</h2>
 
@@ -239,7 +273,7 @@ const ProjectList = ({ tasks, currentUser }) => {
                                 name="name"
                                 value={form.name}
                                 onChange={handleChange}
-                                className="w-full border p-2 rounded"
+                                className="w-full border p-2 rounded mt-1"
                                 required
                             />
                         </div>
@@ -251,7 +285,7 @@ const ProjectList = ({ tasks, currentUser }) => {
                                 name="deskripsi"
                                 value={form.deskripsi}
                                 onChange={handleChange}
-                                className="w-full border p-2 rounded"
+                                className="w-full border p-2 rounded mt-1"
                                 rows={3}
                                 required
                             />
@@ -264,7 +298,7 @@ const ProjectList = ({ tasks, currentUser }) => {
                                 name="priority"
                                 value={form.priority}
                                 onChange={handleChange}
-                                className="w-full border p-2 rounded"
+                                className="w-full border p-2 rounded mt-1"
                             >
                                 <option value="low">Low</option>
                                 <option value="medium">Medium</option>
@@ -273,7 +307,7 @@ const ProjectList = ({ tasks, currentUser }) => {
                         </div>
 
                         {/* START & DUE DATE */}
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div>
                                 <label className="text-sm font-medium">Start Date</label>
                                 <input
@@ -281,7 +315,7 @@ const ProjectList = ({ tasks, currentUser }) => {
                                     name="start_date"
                                     value={form.start_date}
                                     onChange={handleChange}
-                                    className="w-full border p-2 rounded"
+                                    className="w-full border p-2 rounded mt-1"
                                 />
                             </div>
 
@@ -292,42 +326,40 @@ const ProjectList = ({ tasks, currentUser }) => {
                                     name="due_date"
                                     value={form.due_date}
                                     onChange={handleChange}
-                                    className="w-full border p-2 rounded"
+                                    className="w-full border p-2 rounded mt-1"
                                 />
                             </div>
                         </div>
 
-                        {/* STATUS */}
-                        <div className="grid grid-cols-2 gap-3">
+                        {/* STATUS & GANTT */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <label className="text-sm font-medium">Status</label>
+                                <select
+                                    name="status"
+                                    value={form.status}
+                                    onChange={handleChange}
+                                    className="w-full border p-2 rounded mt-1"
+                                >
+                                    <option value="todo">Todo</option>
+                                    <option value="inprogress">In Progress</option>
+                                    <option value="done">Done</option>
+                                </select>
+                            </div>
 
-                        <div>
-                            <label className="text-sm font-medium">Status</label>
-                            <select
-                                name="status"
-                                value={form.status}
-                                onChange={handleChange}
-                                className="w-full border p-2 rounded"
-                            >
-                                <option value="todo">Todo</option>
-                                <option value="inprogress">In Progress</option>
-                                <option value="done">Done</option>
-                            </select>
-                        </div>
-
-                        {/* GANTT TYPE */}
-                        <div>
-                            <label className="text-sm font-medium">Gantt Type</label>
-                            <select
-                                name="ganchart_type"
-                                value={form.ganchart_type}
-                                onChange={handleChange}
-                                className="w-full border p-2 rounded"
-                            >
-                                <option value="daily">Daily</option>
-                                <option value="weekly">Weekly</option>
-                                <option value="monthly">Monthly</option>
-                            </select>
-                        </div>
+                            <div>
+                                <label className="text-sm font-medium">Gantt Type</label>
+                                <select
+                                    name="ganchart_type"
+                                    value={form.ganchart_type}
+                                    onChange={handleChange}
+                                    className="w-full border p-2 rounded mt-1"
+                                >
+                                    <option value="daily">Daily</option>
+                                    <option value="weekly">Weekly</option>
+                                    <option value="monthly">Monthly</option>
+                                </select>
+                            </div>
                         </div>
 
                         {/* CURVA S */}
@@ -342,17 +374,17 @@ const ProjectList = ({ tasks, currentUser }) => {
                         </div>
 
                         {/* ACTION */}
-                        <div className="flex justify-end gap-3 pt-4">
+                        <div className="flex flex-col sm:flex-row justify-end gap-3 pt-4">
                             <button
                                 type="button"
                                 onClick={() => setShowModal(false)}
-                                className="px-4 py-2 border rounded"
+                                className="px-4 py-2 border rounded w-full sm:w-auto"
                             >
                                 Cancel
                             </button>
                             <button
                                 type="submit"
-                                className="bg-blue-600 text-white px-4 py-2 rounded"
+                                className="bg-blue-600 text-white px-4 py-2 rounded w-full sm:w-auto"
                             >
                                 Save Project
                             </button>
@@ -360,6 +392,145 @@ const ProjectList = ({ tasks, currentUser }) => {
                     </form>
                 </div>
             )}
+
+            {/* ✅ MODAL UPDATE PROJECT */}
+            {showEditModal && (
+                <div className="fixed inset-0 bg-black/40 flex justify-center items-start sm:items-center z-50 px-4 py-6">
+                    <form
+                        onSubmit={handleUpdate}
+                        className="bg-white w-full sm:max-w-md md:max-w-lg max-h-[90vh] overflow-y-auto rounded-xl shadow-lg p-4 sm:p-6 space-y-4"
+                    >
+                        <h2 className="text-xl font-bold">Update Project</h2>
+
+                        {/* NAME */}
+                        <div>
+                            <label className="text-sm font-medium">Project Name</label>
+                            <input
+                                type="text"
+                                name="name"
+                                value={form.name}
+                                onChange={handleChange}
+                                className="w-full border p-2 rounded mt-1"
+                                required
+                            />
+                        </div>
+
+                        {/* DESKRIPSI */}
+                        <div>
+                            <label className="text-sm font-medium">Deskripsi</label>
+                            <textarea
+                                name="deskripsi"
+                                value={form.deskripsi}
+                                onChange={handleChange}
+                                className="w-full border p-2 rounded mt-1"
+                                rows={3}
+                                required
+                            />
+                        </div>
+
+                        {/* PRIORITY */}
+                        <div>
+                            <label className="text-sm font-medium">Priority</label>
+                            <select
+                                name="priority"
+                                value={form.priority}
+                                onChange={handleChange}
+                                className="w-full border p-2 rounded mt-1"
+                            >
+                                <option value="low">Low</option>
+                                <option value="medium">Medium</option>
+                                <option value="high">High</option>
+                            </select>
+                        </div>
+
+                        {/* START & DUE DATE */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <label className="text-sm font-medium">Start Date</label>
+                                <input
+                                    type="date"
+                                    name="start_date"
+                                    value={form.start_date}
+                                    onChange={handleChange}
+                                    className="w-full border p-2 rounded mt-1"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="text-sm font-medium">Due Date</label>
+                                <input
+                                    type="date"
+                                    name="due_date"
+                                    value={form.due_date}
+                                    onChange={handleChange}
+                                    className="w-full border p-2 rounded mt-1"
+                                />
+                            </div>
+                        </div>
+
+                        {/* STATUS & GANTT */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <label className="text-sm font-medium">Status</label>
+                                <select
+                                    name="status"
+                                    value={form.status}
+                                    onChange={handleChange}
+                                    className="w-full border p-2 rounded mt-1"
+                                >
+                                    <option value="todo">Todo</option>
+                                    <option value="inprogress">In Progress</option>
+                                    <option value="done">Done</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label className="text-sm font-medium">Gantt Type</label>
+                                <select
+                                    name="ganchart_type"
+                                    value={form.ganchart_type}
+                                    onChange={handleChange}
+                                    className="w-full border p-2 rounded mt-1"
+                                >
+                                    <option value="daily">Daily</option>
+                                    <option value="weekly">Weekly</option>
+                                    <option value="monthly">Monthly</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        {/* CURVA S */}
+                        <div className="flex items-center gap-2">
+                            <input
+                                type="checkbox"
+                                name="curva_s"
+                                checked={form.curva_s}
+                                onChange={handleChange}
+                            />
+                            <label className="text-sm">Enable Curva S</label>
+                        </div>
+
+                        {/* ACTION */}
+                        <div className="flex flex-col sm:flex-row justify-end gap-3 pt-4">
+                            <button
+                                type="button"
+                                onClick={() => setShowEditModal(false)}
+                                className="px-4 py-2 border rounded w-full sm:w-auto"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="submit"
+                                className="bg-blue-600 text-white px-4 py-2 rounded w-full sm:w-auto"
+                            >
+                                Update Project
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            )}
+
+
 
         </div>
     );

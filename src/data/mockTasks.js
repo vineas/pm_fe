@@ -1,4 +1,4 @@
-export const  mockTasks = [
+export const mockTasks = [
   {
     id: 1,
     project_id: 1,

@@ -1,0 +1,4 @@
+- [ ] Edit src/services/api.js: Replace baseURL with import.meta.env.VITE_API_URL
+- [ ] Edit src/components/projects/ProjectDetail.jsx: Replace URL in handleCreateTask with import.meta.env.VITE_API_URL
+- [ ] Edit src/components/kanban/KanbanBoard.jsx: Replace URLs in useEffect and onDragEnd with import.meta.env.VITE_API_URL
+- [ ] Edit src/App.jsx: Replace URLs in useEffect with import.meta.env.VITE_API_URL

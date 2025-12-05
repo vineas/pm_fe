@@ -10,7 +10,7 @@ export default function Header({ currentUser }) {
 
           {/* Title */}
           <h1 className="text-2xl font-bold text-gray-900">
-            Project Management System
+            PM-Tools Permata Maju Bersama
           </h1>
 
           {/* User Info */}
