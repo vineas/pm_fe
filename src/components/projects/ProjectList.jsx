@@ -33,8 +33,6 @@ const ProjectList = ({ tasks, currentUser }) => {
             start_date: project.start_date?.split("T")[0],
             due_date: project.due_date?.split("T")[0],
             status: project.status,
-            ganchart_type: project.ganchart_type,
-            curva_s: project.curva_s,
         });
         setShowEditModal(true);
     };
@@ -42,16 +40,22 @@ const ProjectList = ({ tasks, currentUser }) => {
     const handleUpdate = async (e) => {
         e.preventDefault();
 
+        const payload = {
+            ...form,
+            start_date: form.start_date, // ✅ KIRIM YYYY-MM-DD SAJA
+            due_date: form.due_date,     // ✅ TANPA T00:00:00
+        };
+
+        console.log("📤 PAYLOAD UPDATE DIKIRIM:", payload);
+
         try {
-            await api.put(`/projects/${selectedProject.id}`, form); // ✅ UPDATE API
+            await api.put(`/projects/${selectedProject.id}`, payload);
             setShowEditModal(false);
-            setSelectedProject(null);
-            fetchProjects(); // refresh data
+            fetchProjects();
         } catch (err) {
-            console.error("❌ Gagal update project:", err);
+            console.error(err);
         }
     };
-
 
     const [form, setForm] = useState({
         name: "",
@@ -60,8 +64,6 @@ const ProjectList = ({ tasks, currentUser }) => {
         start_date: "",
         due_date: "",
         status: "inprogress",
-        ganchart_type: "weekly",
-        curva_s: true,
     });
 
 
@@ -85,7 +87,16 @@ const ProjectList = ({ tasks, currentUser }) => {
         e.preventDefault();
 
         try {
-            await createProject(form); // ✅ LANGSUNG SESUAI STRUKTUR API
+            const payload = {
+                ...form,
+                start_date: form.start_date, // ✅ YYYY-MM-DD SAJA
+                due_date: form.due_date,     // ✅ TANPA JAM
+            };
+
+
+            await createProject(payload);
+
+            // await createProject(form); // ✅ LANGSUNG SESUAI STRUKTUR API
             setShowModal(false);
             fetchProjects();
 
@@ -96,8 +107,6 @@ const ProjectList = ({ tasks, currentUser }) => {
                 start_date: "",
                 due_date: "",
                 status: "inprogress",
-                ganchart_type: "weekly",
-                curva_s: true,
             });
         } catch (err) {
             console.error("❌ Gagal create project:", err);
@@ -118,12 +127,22 @@ const ProjectList = ({ tasks, currentUser }) => {
 
     const formatDate = (dateString) => {
         if (!dateString) return "-";
-        return new Date(dateString).toLocaleDateString("id-ID", {
+
+        // ✅ Normalisasi: buang jam & timezone
+        const cleanDate = dateString.split("T")[0]; // "2025-12-07"
+
+        const [year, month, day] = cleanDate.split("-");
+
+        return new Date(year, month - 1, day).toLocaleDateString("id-ID", {
             day: "2-digit",
             month: "short",
             year: "numeric",
         });
     };
+
+
+
+
 
 
     const handleDelete = async (id) => {
@@ -138,7 +157,23 @@ const ProjectList = ({ tasks, currentUser }) => {
     };
 
     if (loading) return <div>Loading projects...</div>;
-    const userProjects = projects;
+
+    const sortByPriorityAndDate = (projects) => {
+        const priorityOrder = { high: 3, medium: 2, low: 1 };
+
+        return [...projects].sort((a, b) => {
+            const priorityDiff =
+                priorityOrder[b.priority] - priorityOrder[a.priority];
+
+            if (priorityDiff !== 0) return priorityDiff;
+
+            return new Date(a.due_date) - new Date(b.due_date); // yg paling dekat dulu
+        });
+    };
+    const userProjects = sortByPriorityAndDate(projects);
+
+    // const userProjects = projects;
+
 
 
     return (
@@ -191,7 +226,7 @@ const ProjectList = ({ tasks, currentUser }) => {
                             </div>
 
                             <p className="text-sm text-gray-600 mb-4">
-                                {project.description}
+                                {project.deskripsi}
                             </p>
 
                             <div className="flex gap-2 mb-4">
@@ -331,46 +366,21 @@ const ProjectList = ({ tasks, currentUser }) => {
                             </div>
                         </div>
 
+                        <div>
+                            <label className="text-sm font-medium">Status</label>
+                            <select
+                                name="status"
+                                value={form.status}
+                                onChange={handleChange}
+                                className="w-full border p-2 rounded mt-1"
+                            >
+                                <option value="todo">Todo</option>
+                                <option value="inprogress">In Progress</option>
+                                <option value="done">Done</option>
+                            </select>
+                        </div>
                         {/* STATUS & GANTT */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <div>
-                                <label className="text-sm font-medium">Status</label>
-                                <select
-                                    name="status"
-                                    value={form.status}
-                                    onChange={handleChange}
-                                    className="w-full border p-2 rounded mt-1"
-                                >
-                                    <option value="todo">Todo</option>
-                                    <option value="inprogress">In Progress</option>
-                                    <option value="done">Done</option>
-                                </select>
-                            </div>
-
-                            <div>
-                                <label className="text-sm font-medium">Gantt Type</label>
-                                <select
-                                    name="ganchart_type"
-                                    value={form.ganchart_type}
-                                    onChange={handleChange}
-                                    className="w-full border p-2 rounded mt-1"
-                                >
-                                    <option value="daily">Daily</option>
-                                    <option value="weekly">Weekly</option>
-                                    <option value="monthly">Monthly</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        {/* CURVA S */}
-                        <div className="flex items-center gap-2">
-                            <input
-                                type="checkbox"
-                                name="curva_s"
-                                checked={form.curva_s}
-                                onChange={handleChange}
-                            />
-                            <label className="text-sm">Enable Curva S</label>
                         </div>
 
                         {/* ACTION */}
@@ -484,32 +494,7 @@ const ProjectList = ({ tasks, currentUser }) => {
                                 </select>
                             </div>
 
-                            <div>
-                                <label className="text-sm font-medium">Gantt Type</label>
-                                <select
-                                    name="ganchart_type"
-                                    value={form.ganchart_type}
-                                    onChange={handleChange}
-                                    className="w-full border p-2 rounded mt-1"
-                                >
-                                    <option value="daily">Daily</option>
-                                    <option value="weekly">Weekly</option>
-                                    <option value="monthly">Monthly</option>
-                                </select>
-                            </div>
                         </div>
-
-                        {/* CURVA S */}
-                        <div className="flex items-center gap-2">
-                            <input
-                                type="checkbox"
-                                name="curva_s"
-                                checked={form.curva_s}
-                                onChange={handleChange}
-                            />
-                            <label className="text-sm">Enable Curva S</label>
-                        </div>
-
                         {/* ACTION */}
                         <div className="flex flex-col sm:flex-row justify-end gap-3 pt-4">
                             <button

@@ -57,7 +57,7 @@ const ProjectDetail = () => {
         onUpdateTask={handleUpdateTask}
       />
 
-      {/* <GanttChart project={project} /> */}
+      {/* <GanttChart /> */}
       {/* <CurvaSChart project={project} /> */}
     </div>
   );

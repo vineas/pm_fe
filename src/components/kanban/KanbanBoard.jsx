@@ -6,6 +6,9 @@ import { DragDropContext, Droppable } from "@hello-pangea/dnd";
 
 const KanbanBoard = ({ project, tasks, onUpdateTask, onCreateTask }) => {
   const [showModal, setShowModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedTask, setSelectedTask] = useState(null);
+
   const [users, setUsers] = useState([]);
 
   const [form, setForm] = useState({
@@ -133,6 +136,55 @@ const KanbanBoard = ({ project, tasks, onUpdateTask, onCreateTask }) => {
     }
   };
 
+  const openEditModal = (task) => {
+    setSelectedTask(task);
+    setForm({
+      name: task.name,
+      deskripsi: task.deskripsi,
+      priority: task.priority,
+      bobot: task.bobot,
+      start_date: task.start_date
+        ? task.start_date.split("T")[0]
+        : "",
+      due_date: task.due_date
+        ? task.due_date.split("T")[0]
+        : "",
+      status: task.status,
+      user_id: task.user_id,
+    });
+    setShowEditModal(true);
+  };
+
+  const handleUpdateTask = async (e) => {
+    e.preventDefault();
+
+    if (!selectedTask) return;
+
+    try {
+      const payload = {
+        ...form,
+        project_id: project.id,
+      };
+
+      const res = await axios.put(
+        `${import.meta.env.VITE_API_URL}/projects/${project.id}/tasks/${selectedTask.id}`,
+        payload,
+        { headers: { "Content-Type": "application/json" } }
+      );
+
+      if (typeof onUpdateTask === "function") {
+        onUpdateTask(res.data);
+      }
+
+      setShowEditModal(false);
+      setSelectedTask(null);
+    } catch (err) {
+      console.error("Gagal update task:", err);
+    }
+  };
+
+
+
 
 
   return (
@@ -176,6 +228,7 @@ const KanbanBoard = ({ project, tasks, onUpdateTask, onCreateTask }) => {
                           : "green"
                     }
                     users={users}
+                    onEditTask={openEditModal}
                   />
                   {provided.placeholder}
                 </div>
@@ -328,153 +381,156 @@ const KanbanBoard = ({ project, tasks, onUpdateTask, onCreateTask }) => {
           </form>
         </div>
       )}
+
+      {showEditModal && (
+        <div className="fixed inset-0 bg-black/40 flex justify-center items-start sm:items-center z-50 px-4 py-6">
+
+          <form
+            onSubmit={handleUpdateTask}
+            className="bg-white w-full sm:max-w-xl md:max-w-4xl max-h-[90vh] overflow-y-auto rounded-xl shadow-lg p-4 sm:p-6"
+          >
+            <h2 className="text-xl font-bold mb-4">Update Task</h2>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+              {/* KIRI */}
+              <div className="space-y-3">
+                <div>
+                  <label className="text-sm font-medium">Task Name</label>
+                  <input
+                    name="name"
+                    value={form.name}
+                    onChange={handleChange}
+                    className="w-full border p-2 rounded mt-1"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium">Deskripsi</label>
+                  <textarea
+                    name="deskripsi"
+                    value={form.deskripsi}
+                    onChange={handleChange}
+                    className="w-full border p-2 rounded mt-1"
+                    rows={4}
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium">Priority</label>
+                  <select
+                    name="priority"
+                    value={form.priority}
+                    onChange={handleChange}
+                    className="w-full border p-2 rounded mt-1"
+                  >
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* KANAN */}
+              <div className="space-y-3">
+
+                <div>
+                  <label className="text-sm font-medium">Bobot (%)</label>
+                  <input
+                    type="number"
+                    name="bobot"
+                    value={form.bobot}
+                    onChange={handleChange}
+                    min="1"
+                    max="100"
+                    className="w-full border p-2 rounded mt-1"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-sm font-medium">Start Date</label>
+                    <input
+                      type="date"
+                      name="start_date"
+                      value={form.start_date}
+                      onChange={handleChange}
+                      className="w-full border p-2 rounded mt-1"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium">Due Date</label>
+                    <input
+                      type="date"
+                      name="due_date"
+                      value={form.due_date}
+                      onChange={handleChange}
+                      className="w-full border p-2 rounded mt-1"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium">Status</label>
+                  <select
+                    name="status"
+                    value={form.status}
+                    onChange={handleChange}
+                    className="w-full border p-2 rounded mt-1"
+                  >
+                    <option value="todo">Todo</option>
+                    <option value="inprogress">In Progress</option>
+                    <option value="done">Done</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium">Assign User</label>
+                  <select
+                    value={form.user_id || ""}
+                    onChange={handleUserSelect}
+                    className="w-full border p-2 rounded mt-1"
+                    required
+                  >
+                    <option value="">-- Pilih User --</option>
+                    {users.map((user) => (
+                      <option key={user.id} value={user.id}>
+                        {user.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* BUTTON */}
+            <div className="flex justify-end gap-3 pt-6">
+              <button
+                type="button"
+                onClick={() => setShowEditModal(false)}
+                className="px-4 py-2 border rounded"
+              >
+                Cancel
+              </button>
+
+              <button
+                type="submit"
+                className="bg-green-600 text-white px-6 py-2 rounded"
+              >
+                Update Task
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+
+
     </div>
   );
 };
 
 export default KanbanBoard;
-
-
-
-//  {showModal && (
-//         <div className="fixed inset-0 bg-black/40 flex justify-center items-start sm:items-center z-50 px-4 py-6">
-
-//           <form
-//             onSubmit={handleSubmit}
-//             className="bg-white w-full sm:max-w-xl md:max-w-4xl max-h-[90vh] overflow-y-auto rounded-xl shadow-lg p-4 sm:p-6"
-//           >
-//             <h2 className="text-xl font-bold mb-4">Create Task</h2>
-
-//             {/* GRID 2 KOLOM */}
-//             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-
-//               {/* KIRI */}
-//               <div className="space-y-3">
-//                 <div>
-//                   <label className="text-sm font-medium">Task Name</label>
-//                   <input
-//                     name="name"
-//                     value={form.name}
-//                     onChange={handleChange}
-//                     className="w-full border p-2 rounded mt-1"
-//                     required
-//                   />
-//                 </div>
-
-//                 <div>
-//                   <label className="text-sm font-medium">Deskripsi</label>
-//                   <textarea
-//                     name="deskripsi"
-//                     value={form.deskripsi}
-//                     onChange={handleChange}
-//                     className="w-full border p-2 rounded mt-1"
-//                     rows={4}
-//                     required
-//                   />
-//                 </div>
-
-//                 <div>
-//                   <label className="text-sm font-medium">Priority</label>
-//                   <select
-//                     name="priority"
-//                     value={form.priority}
-//                     onChange={handleChange}
-//                     className="w-full border p-2 rounded mt-1"
-//                   >
-//                     <option value="low">Low</option>
-//                     <option value="medium">Medium</option>
-//                     <option value="high">High</option>
-//                   </select>
-//                 </div>
-//               </div>
-
-//               {/* KANAN */}
-//               <div className="space-y-3">
-//                 <div>
-//                   <label className="text-sm font-medium">Bobot (%)</label>
-//                   <input
-//                     type="number"
-//                     name="bobot"
-//                     value={form.bobot}
-//                     onChange={handleChange}
-//                     min="1"
-//                     max="100"
-//                     className="w-full border p-2 rounded mt-1"
-//                   />
-//                 </div>
-
-//                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-//                   <div>
-//                     <label className="text-sm font-medium">Start Date</label>
-//                     <input
-//                       type="date"
-//                       name="start_date"
-//                       value={form.start_date}
-//                       onChange={handleChange}
-//                       className="w-full border p-2 rounded mt-1"
-//                     />
-//                   </div>
-
-//                   <div>
-//                     <label className="text-sm font-medium">Due Date</label>
-//                     <input
-//                       type="date"
-//                       name="due_date"
-//                       value={form.due_date}
-//                       onChange={handleChange}
-//                       className="w-full border p-2 rounded mt-1"
-//                     />
-//                   </div>
-//                 </div>
-
-//                 <div>
-//                   <label className="text-sm font-medium">Status</label>
-//                   <select
-//                     name="status"
-//                     value={form.status}
-//                     onChange={handleChange}
-//                     className="w-full border p-2 rounded mt-1"
-//                   >
-//                     <option value="todo">Todo</option>
-//                     <option value="inprogress">In Progress</option>
-//                     <option value="done">Done</option>
-//                   </select>
-//                 </div>
-
-//                 <div>
-//                   <label className="text-sm font-medium">Assign User</label>
-//                   <select
-//                     onChange={handleUserSelect}
-//                     className="w-full border p-2 rounded mt-1"
-//                     required
-//                   >
-//                     <option value="">-- Pilih User --</option>
-//                     {Array.isArray(users) && users.map((user) => (
-//                       <option key={user.id} value={user.id}>
-//                         {user.name}
-//                       </option>
-//                     ))}
-//                   </select>
-//                 </div>
-//               </div>
-//             </div>
-
-//             {/* TOMBOL */}
-//             <div className="flex flex-col sm:flex-row justify-end gap-3 pt-6">
-//               <button
-//                 type="button"
-//                 onClick={() => setShowModal(false)}
-//                 className="px-4 py-2 border rounded w-full sm:w-auto"
-//               >
-//                 Cancel
-//               </button>
-//               <button
-//                 type="submit"
-//                 className="bg-blue-600 text-white px-6 py-2 rounded w-full sm:w-auto"
-//               >
-//                 Save Task
-//               </button>
-//             </div>
-//           </form>
-//         </div>
-//       )}

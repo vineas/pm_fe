@@ -3,7 +3,7 @@ import { Calendar, User } from "lucide-react";
 import { getPriorityColor } from "../../utils/getPriorityColor";
 import { Draggable } from "@hello-pangea/dnd";
 
-const KanbanColumn = ({ title, tasks, status, color, users = [] }) => {
+const KanbanColumn = ({ title, tasks, status, color, users = [], onEditTask  }) => {
   const bgColors = {
     gray: "bg-gray-100",
     blue: "bg-blue-50",
@@ -47,6 +47,7 @@ const KanbanColumn = ({ title, tasks, status, color, users = [] }) => {
                 ref={provided.innerRef}
                 {...provided.draggableProps}
                 {...provided.dragHandleProps}
+                onClick={() => onEditTask(task)}
                 className="bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow cursor-grab active:cursor-grabbing"
               >
                 <div className="flex justify-between items-start mb-2">
